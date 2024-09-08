@@ -32,15 +32,19 @@ ALLOWED_HOSTS = [
 
 # !!! this has to be removed, the reason this is set to true is because i had issues with CORS
 
-CORS_ALLOWED_ORIGINS = ['localhost', '127.0.0.1']
-
-CSRF_TRUSTED_ORIGINS = ['http://localhost:5500']
-
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5500',
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
 ]
 
-CORS_ALLOW_CREDENTIALS = True
+CSRF_COOKIE_NAME = "csrftoken"
+CSRF_TRUSTED_ORIGINS = [    
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+]
+
 
 # Application definition
 
@@ -54,6 +58,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'todolist',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [

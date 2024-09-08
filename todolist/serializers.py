@@ -1,6 +1,18 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from .models import Contact, TodoItem
+
+class ContactSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField()
+    class Meta:
+        model = Contact
+        fields = '__all__'
+
+class TodoItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TodoItem
+        fields = '__all__'
 
 class EmailAuthTokenSerializer(serializers.Serializer):
     email = serializers.EmailField()

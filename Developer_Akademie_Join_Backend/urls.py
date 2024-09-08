@@ -16,11 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from todolist.views import LoginView, RegisterView, get_csrf_token
+from todolist.views import ContactsView, LoginView, RegisterView, get_csrf_token, TodoItemView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('login/', LoginView.as_view()),
-    path('register/', RegisterView.as_view(), name='register'),
-    path('csrf-token/', get_csrf_token),
+    path('api/login/', LoginView.as_view(), name='login'),
+    path('api/register/', RegisterView.as_view(), name='register'),
+    path('api/csrf-token/', get_csrf_token),
+    path('api/tasks/', TodoItemView.as_view(), name='tasks'),
+    path('api/tasks/<int:task_id>/', TodoItemView.as_view(), name='task-detail'),
+    path('api/contacts/', ContactsView.as_view(), name='contacts'),
+    path('api/contacts/<int:contact_id>/', ContactsView.as_view(), name='contact-detail')
 ]
