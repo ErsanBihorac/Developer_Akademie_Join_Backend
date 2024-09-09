@@ -1,7 +1,11 @@
-from django.contrib.auth import authenticate
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Contact, TodoItem
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email']
 
 class ContactSerializer(serializers.ModelSerializer):
     email = serializers.EmailField()
@@ -10,6 +14,7 @@ class ContactSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class TodoItemSerializer(serializers.ModelSerializer):
+    assigned_to = UserSerializer(many=True)
     class Meta:
         model = TodoItem
         fields = '__all__'

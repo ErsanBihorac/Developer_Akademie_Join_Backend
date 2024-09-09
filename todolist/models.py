@@ -27,7 +27,7 @@ class TodoItem(models.Model):
 
     title = models.CharField(max_length=25)
     description = models.CharField(max_length=200)
-    Assigned_to = models.ManyToManyField(
+    assigned_to = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name='todo_items',
         blank=True

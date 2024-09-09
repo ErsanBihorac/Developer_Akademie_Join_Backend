@@ -1,20 +1,17 @@
-from django.shortcuts import render
-from django.views import View
-from rest_framework.authtoken.views import ObtainAuthToken, APIView
+from rest_framework import status
+from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken, APIView
+from django.views import View
 from django.contrib.auth.models import User
-from django.middleware.csrf import get_token
 from django.http import JsonResponse
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.middleware.csrf import get_token
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 import json
-from django.utils.dateparse import parse_date
+import datetime
 from todolist.models import Contact, TodoItem
 from .serializers import ContactSerializer, EmailAuthTokenSerializer, TodoItemSerializer
-import traceback
-from rest_framework.response import Response
-from rest_framework import status
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 
 @ensure_csrf_cookie
 def get_csrf_token(request):
@@ -37,7 +34,7 @@ class ContactsView(APIView):
             color_id = data.get('colorId')
 
             if not all([name, email, phone, first_letter, color_id]):
-                    return Response({'error': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'error': 'Missing required fields'}, status=400)
 
             contact = Contact(
                 name = name,
@@ -57,16 +54,14 @@ class ContactsView(APIView):
         try:
             contact = Contact.objects.get(id=contact_id)
             serializer = ContactSerializer(contact, data=request.data)
-            print(request.data)
             if serializer.is_valid():
-                print('sucess')
                 serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
+                return Response(serializer.data, status=200)
             else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(serializer.errors, status=200)
             
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': str(e)}, status=500)
         
     def delete(self, request, contact_id):
         try:
@@ -87,7 +82,6 @@ class TodoItemView(APIView):
     def post(self, request):
         try:
             data = request.data
-            print(data)
             title = data.get('title')
             description = data.get('description')
             due_date = data.get('due_date')
@@ -96,37 +90,68 @@ class TodoItemView(APIView):
             assigned_to = data.get('assigned_to', [])
             
             if not all([title, description, due_date, priority, status]):
-                return Response({'error': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Missing required fields'}, status=400)
 
             todo_item = TodoItem(
                 title=title,
                 description=description,
                 due_date=due_date,
                 priority=priority,
-                status=status
+                status=status,
             )
-            # Todo: Assign a user
+
             todo_item.save()
+
+            if assigned_to:
+                users = User.objects.filter(email__in=assigned_to)
+                todo_item.Assigned_to.set(users)
+
             serializer = TodoItemSerializer(todo_item)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=201)
         except Exception as e:
             return Response({'error': str(e)})
         
     def put(self, request, task_id):
         try:
-            todos = TodoItem.objects.get(id=task_id)
-            serializer = TodoItemSerializer(todos, data=request.data)
-            print(request.data)
-            if serializer.is_valid():
-                print('sucess')
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+            todo_item = TodoItem.objects.get(id=task_id)
+            data = request.data
 
+            title = data.get('title', todo_item.title)
+            description = data.get('description', todo_item.description)
+            priority = data.get('priority', todo_item.priority)
+            status = data.get('status', todo_item.status)
+            due_date_str = data.get('due_date', todo_item.due_date)
+
+            if due_date_str:
+                try:
+                    due_date = datetime.datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    return Response({'error': 'Ungültiges Datumsformat, muss YYYY-MM-DD sein'}, status=400)
+            else:
+                due_date = todo_item.due_date
+
+            assigned_to = data.get('assigned_to', [])
+
+            todo_item.title = title
+            todo_item.description = description
+            todo_item.due_date = due_date
+            todo_item.priority = priority
+            todo_item.status = status
+
+            if assigned_to:
+                users = User.objects.filter(username__in=assigned_to)
+                todo_item.assigned_to.set(users)
+
+            todo_item.save()
+
+            serializer = TodoItemSerializer(todo_item)
+            return Response(serializer.data, status=200)
+
+        except TodoItem.DoesNotExist:
+            return Response({'error': 'TodoItem nicht gefunden'}, status=400)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+    
     def delete(self, request, task_id):
         try:
             todos = TodoItem.objects.get(id=task_id)
@@ -135,7 +160,7 @@ class TodoItemView(APIView):
         except TodoItem.DoesNotExist:
             return Response({'error': 'Task not found'})
         except Exception as e:
-            return Response({'error': str(e)})
+            return Response({'error': str(e)}, status=500)
 
 class LoginView(ObtainAuthToken):
     serializer_class = EmailAuthTokenSerializer
@@ -151,7 +176,8 @@ class LoginView(ObtainAuthToken):
             'message': 'Login erfolgreich',
             'token': token.key,
             'user_id': user.pk,
-            'email': user.email
+            'email': user.email,
+            'username': user.username
         }, status=status.HTTP_200_OK)
 
 
