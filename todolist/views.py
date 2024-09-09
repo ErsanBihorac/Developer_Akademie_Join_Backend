@@ -181,11 +181,11 @@ class LoginView(ObtainAuthToken):
         }, status=status.HTTP_200_OK)
 
 
-#Schaltet den CSRF-SChutz aus, momentan kann man sich nicht richtig anmelden. 
-# IM Frontend sorgt der CSRF schutz daüfr dass ich mich nicht anmelden kann, 
-# in Postman funktioniert alles jedoch einwandfrei
+# Schaltet den CSRF-SChutz aus
+# im Frontend sorgt der CSRF schutz dafür dass ich mich nicht anmelden kann 
+# in Postman funktioniert alles jedoch einwandfrei, ich habe den Fehler nach vielen Stunden nicht gelöst
+#  bekommen und wollte nicht noch mehr stunden damit verwschwenden am Frontend zu arbeiten
 @method_decorator(csrf_exempt, name='dispatch') 
-
 class RegisterView(View):
     def post(self, request):
         try:

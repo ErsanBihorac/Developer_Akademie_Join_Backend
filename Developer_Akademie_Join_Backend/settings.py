@@ -30,8 +30,6 @@ ALLOWED_HOSTS = [
     '127.0.0.1'
 ]
 
-# !!! this has to be removed, the reason this is set to true is because i had issues with CORS
-
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOWED_ORIGINS = [
