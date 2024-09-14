@@ -8,49 +8,31 @@ from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
-import json
-import datetime
 from todolist.models import Contact, TodoItem
 from .serializers import ContactSerializer, EmailAuthTokenSerializer, TodoItemSerializer
-
-@ensure_csrf_cookie
-def get_csrf_token(request):
-    csrf_token = get_token(request)
-    return JsonResponse({'csrfToken': csrf_token})
+from .functions import (
+    validate_contact_data, create_contact, serialize_and_respond_contact,
+    validate_todo_item_data, create_todo_item, assign_users_for_todo_item,
+    update_todo_item, update_assigned_users,
+    get_request_data_of_register, validate_register_data, create_user
+)
 
 class ContactsView(APIView):
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         contacts = Contact.objects.all()
         serializer = ContactSerializer(contacts, many=True)
         return Response(serializer.data)
-    
-    def post(self, request):
+
+    def post(self, request, *args, **kwargs):
         try:
             data = request.data
-            name = data.get('name')
-            email = data.get('email')
-            phone = data.get('phone')
-            first_letter = data.get('firstLetter')
-            color_id = data.get('colorId')
-
-            if not all([name, email, phone, first_letter, color_id]):
-                    return Response({'error': 'Missing required fields'}, status=400)
-
-            contact = Contact(
-                name = name,
-                email = email,
-                phone = phone,
-                first_letter = first_letter,
-                color_id = color_id
-            )
-
-            contact.save()
-            serializer = TodoItemSerializer(contact)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            validate_contact_data(data)
+            contact = create_contact(data)
+            return serialize_and_respond_contact(contact)
         except Exception as e:
-            return Response({'error': str(e)})
+            return Response({'error': str(e)}, status=500)
         
-    def put(self, request, contact_id):
+    def put(self, request, contact_id, *args, **kwargs):
         try:
             contact = Contact.objects.get(id=contact_id)
             serializer = ContactSerializer(contact, data=request.data)
@@ -63,7 +45,7 @@ class ContactsView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=500)
         
-    def delete(self, request, contact_id):
+    def delete(self, request, contact_id, *args, **kwargs):
         try:
             contact = Contact.objects.get(id=contact_id)
             contact.delete()
@@ -74,85 +56,41 @@ class ContactsView(APIView):
             return Response({'error': str(e)})
 
 class TodoItemView(APIView):
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         todos = TodoItem.objects.all()
         serializer = TodoItemSerializer(todos, many=True)
         return Response(serializer.data)
-    
-    def post(self, request):
+
+    def post(self, request, *args, **kwargs):
         try:
             data = request.data
-            title = data.get('title')
-            description = data.get('description')
-            due_date = data.get('due_date')
-            priority = data.get('priority')
-            status = data.get('status')
-            assigned_to = data.get('assigned_to', [])
-            
-            if not all([title, description, due_date, priority, status]):
+            if not validate_todo_item_data(data):
                 return Response({'error': 'Missing required fields'}, status=400)
 
-            todo_item = TodoItem(
-                title=title,
-                description=description,
-                due_date=due_date,
-                priority=priority,
-                status=status,
-            )
-
-            todo_item.save()
-
-            if assigned_to:
-                users = User.objects.filter(email__in=assigned_to)
-                todo_item.Assigned_to.set(users)
+            todo_item = create_todo_item(data)
+            assign_users_for_todo_item(todo_item, data.get('assigned_to', []))
 
             serializer = TodoItemSerializer(todo_item)
             return Response(serializer.data, status=201)
         except Exception as e:
-            return Response({'error': str(e)})
-        
-    def put(self, request, task_id):
+            return Response({'error': str(e)}, status=500)
+
+    def put(self, request, task_id, *args, **kwargs):
         try:
             todo_item = TodoItem.objects.get(id=task_id)
             data = request.data
 
-            title = data.get('title', todo_item.title)
-            description = data.get('description', todo_item.description)
-            priority = data.get('priority', todo_item.priority)
-            status = data.get('status', todo_item.status)
-            due_date_str = data.get('due_date', todo_item.due_date)
-
-            if due_date_str:
-                try:
-                    due_date = datetime.datetime.strptime(due_date_str, '%Y-%m-%d').date()
-                except ValueError:
-                    return Response({'error': 'Ungültiges Datumsformat, muss YYYY-MM-DD sein'}, status=400)
-            else:
-                due_date = todo_item.due_date
-
-            assigned_to = data.get('assigned_to', [])
-
-            todo_item.title = title
-            todo_item.description = description
-            todo_item.due_date = due_date
-            todo_item.priority = priority
-            todo_item.status = status
-
-            if assigned_to:
-                users = User.objects.filter(username__in=assigned_to)
-                todo_item.assigned_to.set(users)
-
-            todo_item.save()
+            todo_item = update_todo_item(todo_item, data)
+            update_assigned_users(todo_item, data.get('assigned_to', []))
 
             serializer = TodoItemSerializer(todo_item)
             return Response(serializer.data, status=200)
-
         except TodoItem.DoesNotExist:
             return Response({'error': 'TodoItem nicht gefunden'}, status=400)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
     
-    def delete(self, request, task_id):
+    def delete(self, request, task_id, *args, **kwargs):
         try:
             todos = TodoItem.objects.get(id=task_id)
             todos.delete()
@@ -166,11 +104,10 @@ class LoginView(ObtainAuthToken):
     serializer_class = EmailAuthTokenSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data,
-                                           context={'request': request})
+        serializer = self.serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
+        token = Token.objects.get_or_create(user=user)
 
         return Response({
             'message': 'Login erfolgreich',
@@ -187,21 +124,15 @@ class LoginView(ObtainAuthToken):
 #  bekommen und wollte nicht noch mehr stunden damit verwschwenden am Frontend zu arbeiten
 @method_decorator(csrf_exempt, name='dispatch') 
 class RegisterView(View):
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         try:
-            data = json.loads(request.body)
-            username = data.get('username')
-            email = data.get('email')
-            password = data.get('password')
-
-            if not username or not email or not password:
+            data = get_request_data_of_register(request)
+            if not validate_register_data(data):
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
-            if User.objects.filter(email=email).exists():
+            if User.objects.filter(email=data['email']).exists():
                 return JsonResponse({'error': 'Email already exists'}, status=400)
-            
-            user = User.objects.create_user(username=username, email=email, password=password)
-            user.save()
+    
+            create_user(data)
             return JsonResponse({'message': 'User created successfully'}, status=201)
-        
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

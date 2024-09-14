@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Contact, TodoItem
-
+from .functions import (get_user)
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -24,19 +24,13 @@ class EmailAuthTokenSerializer(serializers.Serializer):
     password = serializers.CharField(trim_whitespace=False)
 
     def validate(self, attrs):
-        email = attrs.get('email')
-        password = attrs.get('password')
-
-        if email and password:
-            try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
-                raise serializers.ValidationError('No user associated with this email.')
-
-            if not user.check_password(password):
-                raise serializers.ValidationError('Incorrect password.')
-        else:
+        email, password = attrs.get('email'), attrs.get('password')
+        if not email or not password:
             raise serializers.ValidationError('Must include "email" and "password".')
-
+    
+        user = get_user(email)
+        if not user.check_password(password):
+            raise serializers.ValidationError('Incorrect password.')
+    
         attrs['user'] = user
         return attrs
