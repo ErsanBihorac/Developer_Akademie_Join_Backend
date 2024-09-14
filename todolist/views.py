@@ -19,11 +19,20 @@ from .functions import (
 
 class ContactsView(APIView):
     def get(self, request, *args, **kwargs):
-        contacts = Contact.objects.all()
-        serializer = ContactSerializer(contacts, many=True)
-        return Response(serializer.data)
+        """
+        This function returns all contacts.
+        """
+        try:
+            contacts = Contact.objects.all()
+            serializer = ContactSerializer(contacts, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
     def post(self, request, *args, **kwargs):
+        """
+        This function adds new contacts
+        """
         try:
             data = request.data
             validate_contact_data(data)
@@ -33,6 +42,9 @@ class ContactsView(APIView):
             return Response({'error': str(e)}, status=500)
         
     def put(self, request, contact_id, *args, **kwargs):
+        """
+        This function updates a specific contact
+        """
         try:
             contact = Contact.objects.get(id=contact_id)
             serializer = ContactSerializer(contact, data=request.data)
@@ -46,6 +58,9 @@ class ContactsView(APIView):
             return Response({'error': str(e)}, status=500)
         
     def delete(self, request, contact_id, *args, **kwargs):
+        """
+        This function deletes a specific contact
+        """
         try:
             contact = Contact.objects.get(id=contact_id)
             contact.delete()
@@ -57,11 +72,20 @@ class ContactsView(APIView):
 
 class TodoItemView(APIView):
     def get(self, request, *args, **kwargs):
-        todos = TodoItem.objects.all()
-        serializer = TodoItemSerializer(todos, many=True)
-        return Response(serializer.data)
+        """
+        This function returns the todo items
+        """
+        try:
+            todos = TodoItem.objects.all()
+            serializer = TodoItemSerializer(todos, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
     def post(self, request, *args, **kwargs):
+        """
+        This function adds new todo items
+        """
         try:
             data = request.data
             if not validate_todo_item_data(data):
@@ -76,6 +100,9 @@ class TodoItemView(APIView):
             return Response({'error': str(e)}, status=500)
 
     def put(self, request, task_id, *args, **kwargs):
+        """
+        This function updates a specific todo items
+        """
         try:
             todo_item = TodoItem.objects.get(id=task_id)
             data = request.data
@@ -91,6 +118,9 @@ class TodoItemView(APIView):
             return Response({'error': str(e)}, status=500)
     
     def delete(self, request, task_id, *args, **kwargs):
+        """
+        This function delets a specific todo item
+        """
         try:
             todos = TodoItem.objects.get(id=task_id)
             todos.delete()
@@ -104,18 +134,24 @@ class LoginView(ObtainAuthToken):
     serializer_class = EmailAuthTokenSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token = Token.objects.get_or_create(user=user)
+        """
+        this functions logs the user in
+        """
+        try:
+            serializer = self.serializer_class(data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            user = serializer.validated_data['user']
+            token = Token.objects.get_or_create(user=user)
 
-        return Response({
-            'message': 'Login erfolgreich',
-            'token': token.key,
-            'user_id': user.pk,
-            'email': user.email,
-            'username': user.username
-        }, status=status.HTTP_200_OK)
+            return Response({
+                'message': 'Login erfolgreich',
+                'token': token.key,
+                'user_id': user.pk,
+                'email': user.email,
+                'username': user.username
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
 
 # Schaltet den CSRF-SChutz aus
@@ -124,6 +160,9 @@ class LoginView(ObtainAuthToken):
 #  bekommen und wollte nicht noch mehr stunden damit verwschwenden am Frontend zu arbeiten
 @method_decorator(csrf_exempt, name='dispatch') 
 class RegisterView(View):
+    """
+    This function registers a new user
+    """
     def post(self, request, *args, **kwargs):
         try:
             data = get_request_data_of_register(request)

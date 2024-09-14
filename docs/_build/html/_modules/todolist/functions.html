@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>todolist.functions &mdash; Join Backend 2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=6fefd858"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Join Backend
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Join Backend</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">todolist.functions</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for todolist.functions</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">todolist.models</span> <span class="kn">import</span> <span class="n">Contact</span><span class="p">,</span> <span class="n">TodoItem</span>
+<span class="kn">from</span> <span class="nn">rest_framework</span> <span class="kn">import</span> <span class="n">serializers</span>
+<span class="kn">from</span> <span class="nn">rest_framework.response</span> <span class="kn">import</span> <span class="n">Response</span>
+<span class="kn">from</span> <span class="nn">django.contrib.auth.models</span> <span class="kn">import</span> <span class="n">User</span>
+<span class="kn">from</span> <span class="nn">django.views.decorators.csrf</span> <span class="kn">import</span> <span class="n">ensure_csrf_cookie</span>
+<span class="kn">from</span> <span class="nn">django.middleware.csrf</span> <span class="kn">import</span> <span class="n">get_token</span>
+<span class="kn">from</span> <span class="nn">django.http</span> <span class="kn">import</span> <span class="n">JsonResponse</span>
+
+<div class="viewcode-block" id="get_csrf_token">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.get_csrf_token">[docs]</a>
+<span class="nd">@ensure_csrf_cookie</span>
+<span class="k">def</span> <span class="nf">get_csrf_token</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function returns a csrf token that is needed to register and login</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">csrf_token</span> <span class="o">=</span> <span class="n">get_token</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">JsonResponse</span><span class="p">({</span><span class="s1">&#39;csrfToken&#39;</span><span class="p">:</span> <span class="n">csrf_token</span><span class="p">})</span></div>
+
+
+<div class="viewcode-block" id="validate_contact_data">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.validate_contact_data">[docs]</a>
+<span class="k">def</span> <span class="nf">validate_contact_data</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function validates the contact data fields</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">required_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;email&#39;</span><span class="p">,</span> <span class="s1">&#39;phone&#39;</span><span class="p">,</span> <span class="s1">&#39;firstLetter&#39;</span><span class="p">,</span> <span class="s1">&#39;colorId&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">required_fields</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Missing required fields&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="create_contact">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.create_contact">[docs]</a>
+<span class="k">def</span> <span class="nf">create_contact</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function creates a contact and returns it</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">contact</span> <span class="o">=</span> <span class="n">Contact</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">),</span>
+        <span class="n">email</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;email&#39;</span><span class="p">),</span>
+        <span class="n">phone</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;phone&#39;</span><span class="p">),</span>
+        <span class="n">first_letter</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;firstLetter&#39;</span><span class="p">),</span>
+        <span class="n">color_id</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colorId&#39;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">contact</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">contact</span></div>
+
+
+<div class="viewcode-block" id="serialize_and_respond_contact">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.serialize_and_respond_contact">[docs]</a>
+<span class="k">def</span> <span class="nf">serialize_and_respond_contact</span><span class="p">(</span><span class="n">contact</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function serializes the contact and returns a response</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">todolist.serializers</span> <span class="kn">import</span> <span class="n">ContactSerializer</span>
+    <span class="n">serializer</span> <span class="o">=</span> <span class="n">ContactSerializer</span><span class="p">(</span><span class="n">contact</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">serializer</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="mi">201</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="validate_todo_item_data">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.validate_todo_item_data">[docs]</a>
+<span class="k">def</span> <span class="nf">validate_todo_item_data</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function validates the data fields for the todo item</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">([</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="s1">&#39;due_date&#39;</span><span class="p">,</span> <span class="s1">&#39;priority&#39;</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">]])</span></div>
+
+
+<div class="viewcode-block" id="create_todo_item">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.create_todo_item">[docs]</a>
+<span class="k">def</span> <span class="nf">create_todo_item</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function creates a todo item and returns the todo item</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">todo_item</span> <span class="o">=</span> <span class="n">TodoItem</span><span class="p">(</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">),</span>
+        <span class="n">due_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;due_date&#39;</span><span class="p">),</span>
+        <span class="n">priority</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;priority&#39;</span><span class="p">),</span>
+        <span class="n">status</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">todo_item</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">todo_item</span></div>
+
+
+<div class="viewcode-block" id="assign_users_for_todo_item">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.assign_users_for_todo_item">[docs]</a>
+<span class="k">def</span> <span class="nf">assign_users_for_todo_item</span><span class="p">(</span><span class="n">todo_item</span><span class="p">,</span> <span class="n">assigned_to</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function assigns users to the todo item</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">assigned_to</span><span class="p">:</span>
+        <span class="n">users</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">email__in</span><span class="o">=</span><span class="n">assigned_to</span><span class="p">)</span>
+        <span class="n">todo_item</span><span class="o">.</span><span class="n">Assigned_to</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">users</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="update_todo_item">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.update_todo_item">[docs]</a>
+<span class="k">def</span> <span class="nf">update_todo_item</span><span class="p">(</span><span class="n">todo_item</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function updates the todo item data fields with new values and returns the todo item</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">todo_item</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="n">todo_item</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+    <span class="n">todo_item</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="n">todo_item</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
+    <span class="n">todo_item</span><span class="o">.</span><span class="n">priority</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;priority&#39;</span><span class="p">,</span> <span class="n">todo_item</span><span class="o">.</span><span class="n">priority</span><span class="p">)</span>
+    <span class="n">todo_item</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="n">todo_item</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+    <span class="n">todo_item</span><span class="o">.</span><span class="n">due_date</span> <span class="o">=</span> <span class="n">parse_due_date</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;due_date&#39;</span><span class="p">,</span> <span class="n">todo_item</span><span class="o">.</span><span class="n">due_date</span><span class="p">))</span>
+    <span class="n">todo_item</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">todo_item</span></div>
+
+
+<div class="viewcode-block" id="update_assigned_users">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.update_assigned_users">[docs]</a>
+<span class="k">def</span> <span class="nf">update_assigned_users</span><span class="p">(</span><span class="n">todo_item</span><span class="p">,</span> <span class="n">assigned_to</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function updates the assigned users of the todo item</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">assigned_to</span><span class="p">:</span>
+        <span class="n">users</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">username__in</span><span class="o">=</span><span class="n">assigned_to</span><span class="p">)</span>
+        <span class="n">todo_item</span><span class="o">.</span><span class="n">assigned_to</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">users</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_due_date">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.parse_due_date">[docs]</a>
+<span class="k">def</span> <span class="nf">parse_due_date</span><span class="p">(</span><span class="n">due_date_str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function parses the date of the due date fields and returns the value</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">due_date_str</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="k">if</span> <span class="n">due_date_str</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Ungültiges Datumsformat, muss YYYY-MM-DD sein&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_request_data_of_register">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.get_request_data_of_register">[docs]</a>
+<span class="k">def</span> <span class="nf">get_request_data_of_register</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function returns the parsed data from the request</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">body</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="validate_register_data">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.validate_register_data">[docs]</a>
+<span class="k">def</span> <span class="nf">validate_register_data</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function validates and returns the data fields from the register</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">([</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;username&#39;</span><span class="p">),</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;email&#39;</span><span class="p">),</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;password&#39;</span><span class="p">)])</span></div>
+
+
+<div class="viewcode-block" id="create_user">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.create_user">[docs]</a>
+<span class="k">def</span> <span class="nf">create_user</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function creates a new user and returns the user</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create_user</span><span class="p">(</span>
+        <span class="n">username</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">email</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;email&#39;</span><span class="p">],</span> <span class="n">password</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;password&#39;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">user</span></div>
+
+
+<div class="viewcode-block" id="get_user">
+<a class="viewcode-back" href="../../todolist.html#todolist.functions.get_user">[docs]</a>
+<span class="k">def</span> <span class="nf">get_user</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    this function returns a specific user by using the email of the user</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">User</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">serializers</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span><span class="s1">&#39;No user associated with this email.&#39;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Ersan Bihorac.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
