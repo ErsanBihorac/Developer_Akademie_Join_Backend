@@ -4,9 +4,9 @@ import datetime
 
 class Contact(models.Model):
     name = models.CharField(max_length=25)
-    email = models.EmailField(max_length=254, unique=True, blank=False)
-    phone = models.CharField(max_length=15, blank=False)
-    first_letter = models.CharField(max_length=1, null=False, blank=False)
+    email = models.EmailField(max_length=254, unique=True)
+    phone = models.CharField(max_length=15)
+    first_letter = models.CharField(max_length=1, null=False)
     color_id = models.IntegerField(default=1)
 
     def __str__(self):

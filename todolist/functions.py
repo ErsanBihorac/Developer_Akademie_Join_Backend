@@ -16,6 +16,18 @@ def get_csrf_token(request):
     csrf_token = get_token(request)
     return JsonResponse({'csrfToken': csrf_token})
 
+def normalize_contact_data(data):
+    """
+    This function normalizes the contact data by handling both first_letter/color_id and firstLetter/colorId.
+    """
+    if 'first_letter' in data:
+        data['firstLetter'] = data.pop('first_letter')
+
+    if 'color_id' in data:
+        data['colorId'] = data.pop('color_id')
+
+    return data
+
 def validate_contact_data(data):
     """
     This function validates the contact data fields
@@ -28,6 +40,9 @@ def create_contact(data):
     """
     This function creates a contact and returns it
     """
+    data = normalize_contact_data(data)
+    validate_contact_data(data)
+
     contact = Contact(
         name=data.get('name'),
         email=data.get('email'),
@@ -72,7 +87,7 @@ def assign_users_for_todo_item(todo_item, assigned_to):
     """
     if assigned_to:
         users = User.objects.filter(email__in=assigned_to)
-        todo_item.Assigned_to.set(users)
+        todo_item.assigned_to.set(users)
 
 def update_todo_item(todo_item, data):
     """

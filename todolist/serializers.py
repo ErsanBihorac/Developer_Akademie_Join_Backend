@@ -8,7 +8,6 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']
 
 class ContactSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField()
     class Meta:
         model = Contact
         fields = '__all__'

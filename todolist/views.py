@@ -11,7 +11,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from todolist.models import Contact, TodoItem
 from .serializers import ContactSerializer, EmailAuthTokenSerializer, TodoItemSerializer
 from .functions import (
-    validate_contact_data, create_contact, serialize_and_respond_contact,
+    create_contact, serialize_and_respond_contact,
     validate_todo_item_data, create_todo_item, assign_users_for_todo_item,
     update_todo_item, update_assigned_users,
     get_request_data_of_register, validate_register_data, create_user
@@ -35,7 +35,6 @@ class ContactsView(APIView):
         """
         try:
             data = request.data
-            validate_contact_data(data)
             contact = create_contact(data)
             return serialize_and_respond_contact(contact)
         except Exception as e:
@@ -90,10 +89,8 @@ class TodoItemView(APIView):
             data = request.data
             if not validate_todo_item_data(data):
                 return Response({'error': 'Missing required fields'}, status=400)
-
             todo_item = create_todo_item(data)
             assign_users_for_todo_item(todo_item, data.get('assigned_to', []))
-
             serializer = TodoItemSerializer(todo_item)
             return Response(serializer.data, status=201)
         except Exception as e:
@@ -141,7 +138,7 @@ class LoginView(ObtainAuthToken):
             serializer = self.serializer_class(data=request.data, context={'request': request})
             serializer.is_valid(raise_exception=True)
             user = serializer.validated_data['user']
-            token = Token.objects.get_or_create(user=user)
+            token, created = Token.objects.get_or_create(user=user)
 
             return Response({
                 'message': 'Login erfolgreich',
@@ -154,10 +151,7 @@ class LoginView(ObtainAuthToken):
             return Response({'error': str(e)}, status=500)
 
 
-# Schaltet den CSRF-SChutz aus
-# im Frontend sorgt der CSRF schutz dafür dass ich mich nicht anmelden kann 
-# in Postman funktioniert alles jedoch einwandfrei, ich habe den Fehler nach vielen Stunden nicht gelöst
-#  bekommen und wollte nicht noch mehr stunden damit verwschwenden am Frontend zu arbeiten
+# This disables the CSRF guard, i had issues in the frontend with it so i disabled it. But enabled it works fine with postman, just make sure to get your csrf token correct url and then send it with the registration
 @method_decorator(csrf_exempt, name='dispatch') 
 class RegisterView(View):
     """
